@@ -1,0 +1,414 @@
+{
+  "info": {
+    "name": "Cocos Challenge - Trading API",
+    "description": "Portfolio, asset search, and order placement endpoints. All responses are envelope-wrapped via the TransformInterceptor: `{ statusCode, data, timestamp }`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "ad4a09a2-f18e-4961-9216-34f588988d71"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Portfolio",
+      "item": [
+        {
+          "name": "Get portfolio by userId",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/portfolio/1",
+            "_postman_id": "201fd43b-ccba-47d4-b8b0-39f9e0dff0d0"
+          },
+          "response": [
+            {
+              "name": "200 OK - portfolio with AAPL position from seed order #1",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 200,\n  \"data\": {\n    \"totalValue\": -31.4,\n    \"availableCash\": -1852,\n    \"positions\": [\n      {\n        \"instrumentId\": 1,\n        \"ticker\": \"AAPL\",\n        \"name\": \"Apple Inc.\",\n        \"size\": 10,\n        \"value\": 1820.6,\n        \"returnPct\": -0.017\n      }\n    ]\n  },\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "83210f4f-0d91-42d8-90df-2fa56c35cdd8"
+            }
+          ],
+          "_postman_id": "3ed3a5ea-12ad-4ec3-be01-993c93045cbd"
+        }
+      ],
+      "_postman_id": "c15b4138-601e-4cdf-a703-d433fe10b261"
+    },
+    {
+      "name": "Assets",
+      "item": [
+        {
+          "name": "Search by ticker",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/assets?q=aapl",
+            "_postman_id": "d74e4f4d-33b6-4c17-b9ea-4dc01b80a7cf"
+          },
+          "response": [
+            {
+              "name": "200 OK - search by ticker returns matching instruments",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 200,\n  \"data\": [\n    {\n      \"id\": \"1\",\n      \"ticker\": \"AAPL\",\n      \"name\": \"Apple Inc.\",\n      \"type\": \"stock\"\n    }\n  ],\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "89404c5e-c42c-4950-9c9d-3d5191e773ce"
+            }
+          ],
+          "_postman_id": "fcae3a04-f732-47df-93e2-a92fae0e2eb8"
+        },
+        {
+          "name": "Search by name",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/assets?q=apple",
+            "_postman_id": "bc1fe8ad-f866-4155-81ac-3bfe10bb70d8"
+          },
+          "response": [
+            {
+              "name": "200 OK - search by name returns matching instruments",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 200,\n  \"data\": [\n    {\n      \"id\": \"1\",\n      \"ticker\": \"AAPL\",\n      \"name\": \"Apple Inc.\",\n      \"type\": \"stock\"\n    }\n  ],\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "d09bce62-ea57-4190-b3fb-1ee7171671de"
+            }
+          ],
+          "_postman_id": "56ae84db-6ba7-4539-b3f4-c7db16be78c6"
+        }
+      ],
+      "_postman_id": "82d5e4b8-c23e-4d6d-b9dc-97de8a4ffe47"
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Market BUY (exact shares)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"side\": \"BUY\",\n  \"instrumentId\": 1,\n  \"size\": 5,\n  \"type\": \"MARKET\"\n}"
+            },
+            "_postman_id": "b5a35c2f-42a5-45bf-917e-e7366fe2c651"
+          },
+          "response": [
+            {
+              "name": "201 Created - market BUY fills at latest close (182.06)",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 201,\n  \"data\": {\n    \"id\": 7,\n    \"status\": \"FILLED\",\n    \"datetime\": \"2026-09-17T20:30:00.000Z\"\n  },\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "4de9dce2-664f-48d5-974d-69fec1090ee6"
+            }
+          ],
+          "_postman_id": "581f6837-71fc-411f-9b34-f1b85ef356f4"
+        },
+        {
+          "name": "Limit BUY",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"side\": \"BUY\",\n  \"instrumentId\": 1,\n  \"size\": 5,\n  \"price\": 100,\n  \"type\": \"LIMIT\"\n}"
+            },
+            "_postman_id": "c2613463-6cbe-412c-aa3e-e0f384515270"
+          },
+          "response": [
+            {
+              "name": "201 Created - limit BUY stays NEW (no immediate execution)",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 201,\n  \"data\": {\n    \"id\": 8,\n    \"status\": \"NEW\",\n    \"datetime\": \"2026-09-17T20:30:00.000Z\"\n  },\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "67b933c6-579c-41bc-8abc-f81a7d8dc750"
+            }
+          ],
+          "_postman_id": "1e56e2fb-b841-4b9d-b5d0-54e1010b7010"
+        },
+        {
+          "name": "BUY by amount (ARS)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"side\": \"BUY\",\n  \"instrumentId\": 1,\n  \"amount\": 1000,\n  \"type\": \"MARKET\"\n}"
+            },
+            "_postman_id": "6a91078d-42b3-44b2-ad35-8740c2270ab8"
+          },
+          "response": [
+            {
+              "name": "201 Created - amount converted to whole shares (1000 / 182.06 = 5 shares)",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 201,\n  \"data\": {\n    \"id\": 9,\n    \"status\": \"FILLED\",\n    \"datetime\": \"2026-09-17T20:30:00.000Z\"\n  },\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "e9ef1a26-b135-4eed-9fdb-63cd1d63040d"
+            }
+          ],
+          "_postman_id": "8b3b79c9-ad49-4fc9-a7a1-fd1833510f37"
+        },
+        {
+          "name": "CASH_IN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"side\": \"CASH_IN\",\n  \"size\": 500,\n  \"type\": \"MARKET\"\n}"
+            },
+            "_postman_id": "538c430c-7553-4a77-bd55-790f2e52ff36"
+          },
+          "response": [
+            {
+              "name": "201 Created - cash deposit fills immediately",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 201,\n  \"data\": {\n    \"id\": 10,\n    \"status\": \"FILLED\",\n    \"datetime\": \"2026-09-17T20:30:00.000Z\"\n  },\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "fb3f94a2-8ac5-4d4c-93f8-4a3563a17ec2"
+            }
+          ],
+          "_postman_id": "8e8216fc-7823-4c64-8baa-ac7f9ea258f7"
+        },
+        {
+          "name": "CASH_OUT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"side\": \"CASH_OUT\",\n  \"size\": 200,\n  \"type\": \"MARKET\"\n}"
+            },
+            "_postman_id": "f837f35d-0eac-4df0-965f-4be6466b9624"
+          },
+          "response": [
+            {
+              "name": "201 Created - cash withdrawal fills immediately",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 201,\n  \"data\": {\n    \"id\": 11,\n    \"status\": \"FILLED\",\n    \"datetime\": \"2026-09-17T20:30:00.000Z\"\n  },\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "6a20a93f-70bc-4563-a3a7-c277a5e3e912"
+            }
+          ],
+          "_postman_id": "d0373190-6574-4d8f-91f6-cf577b4cd3ee"
+        },
+        {
+          "name": "Market SELL (partial position)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"side\": \"SELL\",\n  \"instrumentId\": 1,\n  \"size\": 5,\n  \"type\": \"MARKET\"\n}"
+            },
+            "_postman_id": "cca6d3c5-55c6-40e2-ae5a-1a755d60b26f"
+          },
+          "response": [
+            {
+              "name": "201 Created - market SELL fills at latest close (182.06); user has 10 shares from seed order #1",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 201,\n  \"data\": {\n    \"id\": 12,\n    \"status\": \"FILLED\",\n    \"datetime\": \"2026-09-17T20:30:00.000Z\"\n  },\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "dc1516f1-75b3-42c4-8ea1-a7f840b1b5d5"
+            }
+          ],
+          "_postman_id": "4c7391c0-2816-44cd-96cf-d9a8c380702e"
+        },
+        {
+          "name": "Limit SELL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"side\": \"SELL\",\n  \"instrumentId\": 1,\n  \"size\": 5,\n  \"price\": 190,\n  \"type\": \"LIMIT\"\n}"
+            },
+            "_postman_id": "212daed3-7987-42f2-8c6f-67f3994761f4"
+          },
+          "response": [
+            {
+              "name": "201 Created - limit SELL stays NEW (no immediate execution)",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 201,\n  \"data\": {\n    \"id\": 13,\n    \"status\": \"NEW\",\n    \"datetime\": \"2026-09-17T20:30:00.000Z\"\n  },\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "19dde035-2b52-4f0e-b5d5-6d9db164b406"
+            }
+          ],
+          "_postman_id": "312a574a-ee2c-42d3-99be-ada309f99498"
+        },
+        {
+          "name": "Rejected SELL - insufficient shares",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"side\": \"SELL\",\n  \"instrumentId\": 1,\n  \"size\": 20,\n  \"type\": \"MARKET\"\n}"
+            },
+            "_postman_id": "53fb2704-19ba-4930-a2c2-414575c998b8"
+          },
+          "response": [
+            {
+              "name": "201 Created - SELL rejected: user only holds 10 shares (seed order #1), attempting to sell 20",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 201,\n  \"data\": {\n    \"id\": 14,\n    \"status\": \"REJECTED\",\n    \"datetime\": \"2026-09-17T20:30:00.000Z\"\n  },\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "05fd16b6-73c2-4409-8558-ecff8033d27f"
+            }
+          ],
+          "_postman_id": "f789ae5f-7873-4c22-8a27-1e12231b5c62"
+        },
+        {
+          "name": "Cancel NEW order",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/orders/8/cancel",
+            "_postman_id": "10635b2b-338b-4a68-bde0-64b6ea892bdc"
+          },
+          "response": [
+            {
+              "name": "200 OK - order #7 (Limit BUY, NEW status) successfully cancelled",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewfile": "",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"statusCode\": 200,\n  \"data\": {\n    \"cancelled\": true\n  },\n  \"timestamp\": \"2026-09-17T20:30:00.000Z\"\n}",
+              "_postman_id": "c08fe84b-1d77-4770-a493-20310e65386a"
+            }
+          ],
+          "_postman_id": "ece5429d-c76d-41a0-9154-aeb2402041c3"
+        }
+      ],
+      "_postman_id": "f952cc7b-27b3-4809-a455-51f9a5694510"
+    }
+  ]
+}
