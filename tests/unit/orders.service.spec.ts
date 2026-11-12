@@ -7,19 +7,6 @@ import { CreateOrderDto } from '../../src/modules/orders/dto/create-order.dto';
 import { Order } from '../../src/models/order.model';
 import { Instrument } from '../../src/models/instrument.model';
 
-interface MockOrder {
-  id: number;
-  status: string;
-  datetime: Date;
-  size?: number;
-  price?: number | null;
-  type?: string;
-  side?: string;
-  userId?: number;
-  instrumentId?: number | null;
-  save?: () => Promise<void>;
-}
-
 describe('OrderService', () => {
   let service: OrderService;
   let mockSequelize: {
@@ -29,6 +16,7 @@ describe('OrderService', () => {
   let mockOrderModel: {
     create: jest.Mock;
     findByPk: jest.Mock;
+    update: jest.Mock;
   };
   let mockInstrumentModel: {
     findOne: jest.Mock;
@@ -38,6 +26,7 @@ describe('OrderService', () => {
     mockOrderModel = {
       create: jest.fn(),
       findByPk: jest.fn(),
+      update: jest.fn(),
     };
 
     mockInstrumentModel = {
@@ -359,58 +348,41 @@ describe('OrderService', () => {
       expect(result.id).toBe(6);
     });
 
-    it('cancels a NEW order', async () => {
-      const saved: MockOrder = {
-        id: 1,
-        status: 'NEW',
-        datetime: new Date(),
-        save: jest.fn().mockImplementation(function (this: MockOrder) {
-          this.status = 'CANCELLED';
-          return Promise.resolve();
-        }),
-      };
-
-      mockOrderModel.findByPk.mockResolvedValue(saved);
+    it('cancels a NEW order with a single conditional update', async () => {
+      mockOrderModel.update.mockResolvedValue([1]);
 
       const cancelled = await service.cancelOrder(1);
+
       expect(cancelled).toBe(true);
+      expect(mockOrderModel.update).toHaveBeenCalledWith(
+        { status: 'CANCELLED' },
+        { where: { id: 1, status: 'NEW' } },
+      );
     });
 
     it('does not cancel a non-NEW order', async () => {
-      mockOrderModel.findByPk.mockResolvedValue({
-        id: 1,
-        status: 'FILLED',
-        datetime: new Date(),
-      });
+      mockOrderModel.update.mockResolvedValue([0]);
 
       const cancelled = await service.cancelOrder(1);
       expect(cancelled).toBe(false);
     });
 
     it('does not cancel a non-existent order', async () => {
-      mockOrderModel.findByPk.mockResolvedValue(null);
+      mockOrderModel.update.mockResolvedValue([0]);
 
       const cancelled = await service.cancelOrder(999);
       expect(cancelled).toBe(false);
     });
 
     it('does not cancel a CANCELLED order', async () => {
-      mockOrderModel.findByPk.mockResolvedValue({
-        id: 1,
-        status: 'CANCELLED',
-        datetime: new Date(),
-      });
+      mockOrderModel.update.mockResolvedValue([0]);
 
       const cancelled = await service.cancelOrder(1);
       expect(cancelled).toBe(false);
     });
 
     it('does not cancel a REJECTED order', async () => {
-      mockOrderModel.findByPk.mockResolvedValue({
-        id: 1,
-        status: 'REJECTED',
-        datetime: new Date(),
-      });
+      mockOrderModel.update.mockResolvedValue([0]);
 
       const cancelled = await service.cancelOrder(1);
       expect(cancelled).toBe(false);

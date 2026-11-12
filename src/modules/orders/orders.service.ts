@@ -346,12 +346,11 @@ export class OrderService {
   }
 
   async cancelOrder(id: number): Promise<boolean> {
-    const order = await this.orderModel.findByPk(id);
-    if (!order || order.status.toUpperCase() !== 'NEW') {
-      return false;
-    }
-    order.status = 'CANCELLED';
-    await order.save();
-    return true;
+    const [affected] = await this.orderModel.update(
+      { status: 'CANCELLED' },
+      { where: { id, status: 'NEW' } },
+    );
+
+    return affected === 1;
   }
 }
