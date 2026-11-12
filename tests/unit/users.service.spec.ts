@@ -79,7 +79,9 @@ describe('UserService', () => {
       mockSequelize.query.mockResolvedValueOnce([
         { instrumentId: 1, size: '10', buySize: '10', buyCost: '1000' },
       ]);
-      mockSequelize.query.mockResolvedValueOnce([{ close: '185.2' }]);
+      mockSequelize.query.mockResolvedValueOnce([
+        { close: '185.2', previousClose: '160' },
+      ]);
       mockSequelize.query.mockResolvedValueOnce([
         { ticker: 'AAPL', name: 'Apple Inc.' },
       ]);
@@ -93,6 +95,7 @@ describe('UserService', () => {
       expect(result.positions[0].size).toBe(10);
       expect(result.positions[0].value).toBe(1852);
       expect(result.positions[0].returnPct).toBeCloseTo(0.852, 5);
+      expect(result.positions[0].dailyReturnPct).toBeCloseTo(0.1575, 5);
       expect(result.totalValue).toBe(2852);
     });
 
@@ -139,6 +142,7 @@ describe('UserService', () => {
           size: 10,
           value: null,
           returnPct: null,
+          dailyReturnPct: null,
           priceAvailable: false,
         },
       ]);
