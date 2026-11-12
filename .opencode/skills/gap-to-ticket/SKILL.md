@@ -1,6 +1,6 @@
 ---
 name: Gap to ticket
-description: MANDATORY workflow for this repo. Use at the START of every task — before editing any file, before proposing a fix, and whenever the user says "revisá", "arreglá", "hay un bug", "compará con la spec", "no anda", or asks for a review. Enforces the order: read the challenge spec → audit the repo → open one GitHub issue per gap → only then write code. Also use it mid-task the moment a new finding appears, and before claiming something is fixed without an issue number. If a task starts with code and no ticket, this skill was skipped.
+description: MANDATORY workflow for this repo. Use at the START of every task — before editing any file, before proposing a fix, and whenever the user says "revisá", "arreglá", "hay un bug", "compará con la spec", "no anda", or asks for a review. Enforces the order: read the challenge spec → audit the repo → open one GitHub issue per gap → only then write code, test-first. Also use it mid-task when a new finding appears, and before claiming something is fixed without an issue number. For pushing, opening or merging PRs, load `stacked-prs` after this one.
 ---
 
 # Gap → ticket → code
@@ -13,6 +13,23 @@ This rule exists because it was violated: an audit produced a backlog, and
 implementation started in parallel anyway. The backlog then became stale within
 minutes. Do not repeat it.
 
+## Hard rules
+
+1. **No code without a ticket.** If a finding appears mid-task, stop and create
+   the issue before touching the code. If the task is already a ticket, work on
+   that issue.
+2. **No fix without a failing test.** Reproduce first, then implement. A test
+   that does not fail before the fix is not a regression test.
+3. **Tokens are per-command.** Never `export GH_TOKEN` globally, never write a
+   token to a file, and never embed one in a git remote.
+   - Repo operations: `GH_PERSONAL_TOKEN`.
+   - Project operations: `GH_PERSONAL_TOKEN_CLASSIC` (the only token with the
+     `project` scope).
+   - Never use the classic token for repo operations. If a token appears in
+     chat, tell the user to revoke it.
+4. **Merging needs explicit approval.** The ticket is permission to implement,
+   not to merge. Load `stacked-prs` and wait for the user's go-ahead.
+
 ## 0. Read the board first
 
 Before anything else, load the current state. It is cheaper than rediscovering it.
@@ -20,7 +37,8 @@ Before anything else, load the current state. It is cheaper than rediscovering i
 ```sh
 zsh -c 'source ~/.zshrc >/dev/null 2>&1; export GH_TOKEN="$GH_PERSONAL_TOKEN";
   gh issue list -R brianfiszman/cocos-challenge --state open --limit 200 \
-    --json number,title,labels,milestone'
+    --json number,title,milestone,labels \
+    --jq ".[] | \"#\(.number) [\(.milestone.title)] [\(.labels | map(.name) | join(\", \"))] \(.title)\""'
 ```
 
 - If the task is already an issue, work on that issue. Do not create a duplicate.
@@ -74,8 +92,15 @@ Conventions:
 
 - **Labels**: `type: bug | spec-gap | test | feat | chore | docs` and
   `prio: high | medium | low`.
-- **Milestones**: `M0 — Test infrastructure`, `M1 — Spec compliance`,
-  `M2 — Correctness`, `M3 — Outbox + Kafka`.
+- **Milestones**: use the phase, not the label:
+
+  | Milestone | Use for |
+  |---|---|
+  | `M0 — Test infrastructure` | harness, CI, docs about testing |
+  | `M1 — Spec compliance` | explicit spec requirements/ambiguities: `previousClose`, `returnPct`, asset search, cash-transfer fields |
+  | `M2 — Correctness` | races, error semantics, soft deletes, migration/seed integrity, API consistency, perf |
+  | `M3 — Outbox + Kafka` | outbox, relay, consumer, broker, ADRs |
+
 - **Title**: conventional-commit style, e.g. `fix(orders): make cancelOrder atomic`.
 
 Body template:
@@ -86,6 +111,9 @@ What is wrong, in two or three sentences. Why it matters.
 
 **Evidence**
 - `path/to/file.ts:42`
+
+**Reproduction** (bugs only)
+- Command and observed `expected` / `received`.
 
 **Acceptance criteria**
 - [ ] Verifiable statement, not an intention.
@@ -101,23 +129,63 @@ zsh -c 'source ~/.zshrc >/dev/null 2>&1; export GH_TOKEN="$GH_PERSONAL_TOKEN";
     --milestone "M2 — Correctness"'
 ```
 
-Add it to the board (project **5**, owner `brianfiszman`) with the classic token,
-which is the only one with the `project` scope:
+Add it to the board (project **5**, owner `brianfiszman`) with the classic token:
 
 ```sh
 zsh -c 'source ~/.zshrc >/dev/null 2>&1; export GH_TOKEN="$GH_PERSONAL_TOKEN_CLASSIC";
-  gh project item-add 5 --owner brianfiszman --url <issue-url>'
+  gh project item-add 5 --owner brianfiszman --url <issue-url>;
+  gh project item-edit 5 --owner brianfiszman --url <issue-url> \
+    --field "Status" --value "In Progress"'
 ```
 
-## 6. Report, then implement
+## 6. Implement test-first
 
-1. Tell the user the issue numbers and one line each. Do not ask for permission
-   to start; the ticket is the contract.
-2. Branch name references the issue: `fix/8-advisory-lock`.
-3. Commit body ends with `Closes #8` (or `Refs #8` if partial).
-4. Flip any `it.failing` marker in the same commit that fixes the bug.
+1. **Branch**: `type/N-slug`, e.g. `fix/9-cancel-order-atomic`.
+2. **Write the test** that proves the gap, at the lowest layer that can see it
+   (see §8).
+3. **Run it alone** and capture the failure (`expected` vs `received`). If it
+   passes, stop: the diagnosis is wrong or the test is not exercising the path.
+   Update the issue.
+4. **Implement the smallest fix** that makes it pass.
+5. **Flip any `it.failing`** in the same commit that fixes the bug.
+6. **Run the gates**: `npx tsc --noEmit`, `yarn lint`, `yarn test`,
+   `yarn test:e2e`, and `yarn test:functional` when SQL or DB behavior changed.
+7. **Commit**: `type(scope): summary`; the body explains the failure and the fix
+   and ends with `Closes #N`.
 
-## 7. Keep this skill current
+## 7. Definition of Done
+
+- [ ] Every acceptance criterion is checked in the issue body.
+- [ ] Evidence comment with before/after, exact commands and results.
+- [ ] All gates above pass.
+- [ ] Commit ends with `Closes #N`; `it.failing` flipped if applicable.
+- [ ] PR opened following `stacked-prs`.
+- [ ] The issue closes when the change lands on `main` (GitHub closes it through
+      `Closes #N` for a PR merged into the default branch). If the PR was merged
+      into a stacked base, close it manually after the stack lands on `main`.
+      If you close it by hand, do it only after the merge.
+- [ ] Board: `In Progress` while working, `Done` when closed. Verify, do not assume.
+
+## 8. Testing layers
+
+| Layer | Path | Command | Uses |
+|---|---|---|---|
+| Unit | `tests/unit/*.spec.ts` | `yarn test` | mocks, no database |
+| E2E | `tests/integration/*.e2e-spec.ts` | `yarn test:e2e` | real controllers, pipes, filters and interceptors; mocked services; no database |
+| Functional | `tests/functional/*.functional-spec.ts` | `yarn test:functional` | real `AppModule` + Postgres (`database_test`) |
+
+- DB-backed behavior belongs in **functional**, never in e2e: `test:e2e` and
+  `scripts/check.sh` must stay database-free.
+- Functional setup: `resetSchema` in `beforeAll`, `truncateAll` in `beforeEach`,
+  and fixtures from `tests/support/fixtures.ts`. The config uses
+  `maxWorkers: 1`.
+- Concurrency: use real overlapping transactions and synchronize on a DB lock
+  (`pg_stat_activity`, `FOR UPDATE`), never a bare `sleep`. Assert the final DB
+  state, not only the HTTP response.
+- Reproduce before fixing. A test that does not fail before the fix is not a
+  regression test.
+
+## 9. Keep this skill current
 
 When the process changes — new milestone, new label, a convention that stops
 working — edit this file in the same PR that changes the process. The skill is
@@ -127,3 +195,6 @@ part of the codebase, not a note.
 
 - 2026-11-12 — created after the backlog/implementation race. Defines the
   mandatory order and the issue conventions.
+- 2026-11-12 — added the hard token rule, the test-first loop, Definition of
+  Done, board lifecycle, testing layers and the explicit milestone map. PR
+  workflow moved to `stacked-prs`.
