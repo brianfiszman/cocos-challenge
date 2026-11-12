@@ -13,6 +13,8 @@ export interface PositionItem {
   value: number | null;
   /** `null` when `value` is unknown. */
   returnPct: number | null;
+  /** `(close - previousClose) / previousClose` for the latest market data row. */
+  dailyReturnPct: number | null;
   priceAvailable: boolean;
 }
 
@@ -31,6 +33,7 @@ interface PositionRow {
 
 interface PriceRow {
   close: string;
+  previousClose: string;
 }
 
 interface InstrumentRow {
@@ -94,7 +97,7 @@ export class UserService {
       const size: number = Number(row.size);
 
       const priceRows = await this.sequelize.query<PriceRow>(
-        `SELECT close FROM marketdata
+        `SELECT close, "previousClose" FROM marketdata
          WHERE "instrumentId" = :instrumentId
            AND "deletedAt" IS NULL
          ORDER BY datetime DESC LIMIT 1`,
@@ -117,10 +120,14 @@ export class UserService {
 
       let value: number | null = null;
       let returnPct: number | null = null;
+      let dailyReturnPct: number | null = null;
       if (priceAvailable) {
         const close = Number(priceRows[0].close);
+        const previousClose = Number(priceRows[0].previousClose);
         value = size * close;
         returnPct = 0;
+        dailyReturnPct =
+          previousClose > 0 ? (close - previousClose) / previousClose : null;
         if (size > 0 && buySize > 0) {
           const avgCost = buyCost / buySize;
           const costBasis = size * avgCost;
@@ -137,6 +144,7 @@ export class UserService {
         size,
         value,
         returnPct,
+        dailyReturnPct,
         priceAvailable,
       });
     }

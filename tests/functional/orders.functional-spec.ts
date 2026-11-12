@@ -35,6 +35,7 @@ interface PortfolioResponse {
     size: number;
     value: number | null;
     returnPct: number | null;
+    dailyReturnPct: number | null;
     priceAvailable: boolean;
   }>;
 }
@@ -455,6 +456,7 @@ describe('Order placement (functional, real database)', () => {
         size: 10,
         value: null,
         returnPct: null,
+        dailyReturnPct: null,
         priceAvailable: false,
       });
 
@@ -470,6 +472,27 @@ describe('Order placement (functional, real database)', () => {
       // cash 1000 - 10*100 - 1*100 = -100; only the priced position is summed.
       expect(data.availableCash).toBe(-100);
       expect(data.totalValue).toBe(-100 + baseline.price);
+    });
+
+    it('reports the daily return from close and previousClose', async () => {
+      await truncateAll(sequelize);
+      baseline = await seedBaseline(app, { price: 120, previousClose: 100 });
+      await createFilledOrder(app, {
+        userId: baseline.userId,
+        instrumentId: baseline.instrumentId,
+        side: 'BUY',
+        size: 1,
+        price: baseline.price,
+      });
+
+      const response = await getPortfolio(baseline.userId);
+      const data = (response.body as Envelope<PortfolioResponse>).data;
+      const position = data.positions.find(
+        (item) => item.instrumentId === baseline.instrumentId,
+      );
+
+      expect(position?.priceAvailable).toBe(true);
+      expect(position?.dailyReturnPct).toBeCloseTo(0.2);
     });
   });
 
