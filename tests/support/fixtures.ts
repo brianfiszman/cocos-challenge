@@ -69,6 +69,21 @@ export async function createInstruments(
   };
 }
 
+/** Creates a user with no orders. */
+export async function createUser(
+  app: INestApplication,
+  email: string,
+): Promise<number> {
+  const { users } = models(app);
+
+  const user = await users.create({
+    email,
+    accountNumber: `ACC-${email}`,
+  });
+
+  return Number(user.id);
+}
+
 /** Creates a user whose balance is `cash`, materialized as a FILLED CASH_IN. */
 export async function createUserWithCash(
   app: INestApplication,
