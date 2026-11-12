@@ -364,6 +364,15 @@ export class OrderService {
       { where: { id, status: 'NEW' } },
     );
 
-    return affected === 1;
+    if (affected === 1) {
+      return true;
+    }
+
+    const order = await this.orderModel.findByPk(id);
+    if (!order) {
+      throw new NotFoundException(`Order ${id} not found`);
+    }
+
+    return false;
   }
 }

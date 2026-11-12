@@ -464,5 +464,19 @@ describe('Order placement (functional, real database)', () => {
       ).toBe(false);
       expect(await orderStatusInDb(orderId)).toBe('FILLED');
     });
+
+    it('returns 404 when the order does not exist', async () => {
+      const response = await request(server()).patch('/orders/999999/cancel');
+      const body = response.body as {
+        statusCode: number;
+        data: string;
+        timestamp: string;
+      };
+
+      expect(response.status).toBe(404);
+      expect(body.statusCode).toBe(404);
+      expect(typeof body.data).toBe('string');
+      expect(typeof body.timestamp).toBe('string');
+    });
   });
 });

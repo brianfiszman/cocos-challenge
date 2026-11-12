@@ -31,7 +31,7 @@ describe('OrderService', () => {
   beforeEach(async () => {
     mockOrderModel = {
       create: jest.fn(),
-      findByPk: jest.fn(),
+      findByPk: jest.fn().mockResolvedValue({ id: 1 }),
       update: jest.fn(),
     };
 
@@ -405,6 +405,7 @@ describe('OrderService', () => {
         { status: 'CANCELLED' },
         { where: { id: 1, status: 'NEW' } },
       );
+      expect(mockOrderModel.findByPk).not.toHaveBeenCalled();
     });
 
     it('does not cancel a non-NEW order', async () => {
@@ -414,11 +415,19 @@ describe('OrderService', () => {
       expect(cancelled).toBe(false);
     });
 
-    it('does not cancel a non-existent order', async () => {
+    it('throws NotFoundException when the order does not exist', async () => {
       mockOrderModel.update.mockResolvedValue([0]);
+      mockOrderModel.findByPk.mockResolvedValueOnce(null);
 
-      const cancelled = await service.cancelOrder(999);
-      expect(cancelled).toBe(false);
+      await expect(service.cancelOrder(999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+
+      expect(mockOrderModel.update).toHaveBeenCalledWith(
+        { status: 'CANCELLED' },
+        { where: { id: 999, status: 'NEW' } },
+      );
+      expect(mockOrderModel.findByPk).toHaveBeenCalledWith(999);
     });
 
     it('does not cancel a CANCELLED order', async () => {
