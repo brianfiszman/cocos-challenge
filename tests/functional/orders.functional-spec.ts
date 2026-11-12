@@ -5,6 +5,7 @@ import { Sequelize } from 'sequelize-typescript';
 import request from 'supertest';
 import {
   Baseline,
+  createFilledOrder,
   createInstrumentWithoutMarketData,
   createUser,
   seedBaseline,
@@ -32,8 +33,9 @@ interface PortfolioResponse {
     ticker: string;
     name: string;
     size: number;
-    value: number;
-    returnPct: number;
+    value: number | null;
+    returnPct: number | null;
+    priceAvailable: boolean;
   }>;
 }
 
@@ -418,6 +420,56 @@ describe('Order placement (functional, real database)', () => {
       expect(body.statusCode).toBe(404);
       expect(typeof body.data).toBe('string');
       expect(typeof body.timestamp).toBe('string');
+    });
+
+    it('flags a position without market data and excludes it from totalValue', async () => {
+      const unpricedInstrumentId = await createInstrumentWithoutMarketData(app);
+      await createFilledOrder(app, {
+        userId: baseline.userId,
+        instrumentId: unpricedInstrumentId,
+        side: 'BUY',
+        size: 10,
+        price: 100,
+      });
+      await createFilledOrder(app, {
+        userId: baseline.userId,
+        instrumentId: baseline.instrumentId,
+        side: 'BUY',
+        size: 1,
+        price: baseline.price,
+      });
+
+      const response = await getPortfolio(baseline.userId);
+      const data = (response.body as Envelope<PortfolioResponse>).data;
+
+      expect(response.status).toBe(200);
+      expect(data.positions).toHaveLength(2);
+
+      const unpriced = data.positions.find(
+        (position) => position.instrumentId === unpricedInstrumentId,
+      );
+      expect(unpriced).toEqual({
+        instrumentId: unpricedInstrumentId,
+        ticker: 'NODATA',
+        name: 'No Market Data Inc.',
+        size: 10,
+        value: null,
+        returnPct: null,
+        priceAvailable: false,
+      });
+
+      const priced = data.positions.find(
+        (position) => position.instrumentId === baseline.instrumentId,
+      );
+      expect(priced).toMatchObject({
+        size: 1,
+        value: baseline.price,
+        priceAvailable: true,
+      });
+
+      // cash 1000 - 10*100 - 1*100 = -100; only the priced position is summed.
+      expect(data.availableCash).toBe(-100);
+      expect(data.totalValue).toBe(-100 + baseline.price);
     });
   });
 

@@ -128,6 +128,33 @@ export async function createInstrumentWithoutMarketData(
   return Number(instrument.id);
 }
 
+/** Creates a FILLED order directly, bypassing the market-data checks of the API. */
+export async function createFilledOrder(
+  app: INestApplication,
+  params: {
+    userId: number;
+    instrumentId: number;
+    side: 'BUY' | 'SELL';
+    size: number;
+    price: number;
+  },
+): Promise<number> {
+  const { orders } = models(app);
+
+  const order = await orders.create({
+    userId: params.userId,
+    instrumentId: params.instrumentId,
+    side: params.side,
+    size: params.size,
+    price: params.price,
+    type: 'MARKET',
+    status: 'FILLED',
+    datetime: new Date(),
+  });
+
+  return Number(order.id);
+}
+
 /** One user with cash, one instrument with a price, and a second idle user. */
 export async function seedBaseline(
   app: INestApplication,

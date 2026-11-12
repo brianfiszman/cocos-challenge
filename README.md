@@ -117,7 +117,8 @@ Only orders with status `NEW` can be cancelled.
         "name": "Apple Inc.",
         "size": 10,
         "value": 1820.6,
-        "returnPct": -0.017
+        "returnPct": -0.017,
+        "priceAvailable": true
       }
     ]
   },
@@ -126,6 +127,8 @@ Only orders with status `NEW` can be cancelled.
 ```
 
 Cash reflects all FILLED orders: `CASH_IN - CASH_OUT - BUY cost + SELL proceeds`. `returnPct` is based on cost basis: the average buy price (`avgCost = totalBuyCost / totalBuySize`) vs current market value (`returnPct = (value - avgCost) / avgCost`).
+
+**Decision:** when an instrument has no `marketdata` row, its position cannot be valued. The position is still listed with `priceAvailable: false`, `value: null` and `returnPct: null`, and it is excluded from `totalValue`. `totalValue` is cash plus the market value of the positions that can be priced; the API never invents a zero.
 
 ### Soft deletes
 
