@@ -281,6 +281,7 @@ export class OrderService {
     const rows = await this.sequelize.query<MarketPriceRow>(
       `SELECT close FROM marketdata
        WHERE "instrumentId" = :instrumentId
+         AND "deletedAt" IS NULL
        ORDER BY datetime DESC
        LIMIT 1`,
       {
@@ -306,7 +307,9 @@ export class OrderService {
                   WHEN side = 'SELL' THEN (size * price)
                   ELSE 0 END), 0) AS balance
        FROM orders
-       WHERE "userId" = :userId AND status = 'FILLED'`,
+       WHERE "userId" = :userId
+         AND status = 'FILLED'
+         AND "deletedAt" IS NULL`,
       { replacements: { userId }, transaction, type: QueryTypes.SELECT },
     );
     if (rows.length === 0) {
@@ -328,7 +331,8 @@ export class OrderService {
         FROM orders
         WHERE "userId" = :userId
           AND "instrumentId" = :instrumentId
-          AND status = 'FILLED'`,
+          AND status = 'FILLED'
+          AND "deletedAt" IS NULL`,
       {
         replacements: { userId, instrumentId },
         transaction,

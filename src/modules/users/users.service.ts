@@ -68,6 +68,7 @@ export class UserService {
          SUM(CASE WHEN o.side = 'BUY' THEN o.size * o.price END) AS "buyCost"
        FROM orders o
        WHERE o."userId" = :userId AND o.status = 'FILLED'
+         AND o."deletedAt" IS NULL
          AND o.side IN ('BUY', 'SELL')
        GROUP BY o."instrumentId"
        HAVING SUM(CASE WHEN o.side = 'BUY' THEN o.size
@@ -85,6 +86,7 @@ export class UserService {
       const priceRows = await this.sequelize.query<PriceRow>(
         `SELECT close FROM marketdata
          WHERE "instrumentId" = :instrumentId
+           AND "deletedAt" IS NULL
          ORDER BY datetime DESC LIMIT 1`,
         { replacements: { instrumentId }, type: QueryTypes.SELECT },
       );
@@ -92,7 +94,8 @@ export class UserService {
         priceRows.length > 0 ? Number(priceRows[0].close) : 0;
 
       const instrumentRows = await this.sequelize.query<InstrumentRow>(
-        `SELECT ticker, name FROM instruments WHERE id = :instrumentId LIMIT 1`,
+        `SELECT ticker, name FROM instruments
+         WHERE id = :instrumentId AND "deletedAt" IS NULL LIMIT 1`,
         { replacements: { instrumentId }, type: QueryTypes.SELECT },
       );
       const ticker: string =
@@ -134,7 +137,9 @@ export class UserService {
                   WHEN side = 'SELL' THEN (size * price)
                   ELSE 0 END), 0) AS balance
        FROM orders
-       WHERE "userId" = :userId AND status = 'FILLED'`,
+       WHERE "userId" = :userId
+         AND status = 'FILLED'
+         AND "deletedAt" IS NULL`,
       { replacements: { userId }, type: QueryTypes.SELECT },
     );
     if (rows.length === 0) {

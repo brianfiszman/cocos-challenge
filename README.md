@@ -127,6 +127,12 @@ Only orders with status `NEW` can be cancelled.
 
 Cash reflects all FILLED orders: `CASH_IN - CASH_OUT - BUY cost + SELL proceeds`. `returnPct` is based on cost basis: the average buy price (`avgCost = totalBuyCost / totalBuySize`) vs current market value (`returnPct = (value - avgCost) / avgCost`).
 
+### Soft deletes
+
+`users`, `instruments`, `orders` and `marketdata` use Sequelize's paranoid mode: `destroy()` sets `deletedAt` instead of removing the row.
+
+**Decision:** soft-deleted rows are excluded from all money math. The raw SQL aggregates explicitly filter `"deletedAt" IS NULL`, matching what the models do. A deleted order therefore stops affecting `availableCash`, `positions` and pre-trade validation, and deleted market data is not used to price an order.
+
 ### Asset Search (`GET /assets?q=<query>`)
 
 Returns up to 50 instruments matching the query in `ticker` or `name` (case-insensitive).
