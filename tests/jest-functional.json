@@ -1,0 +1,14 @@
+{
+  "rootDir": "..",
+  "testRegex": ".functional-spec.ts$",
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "testEnvironment": "node",
+  "setupFiles": ["<rootDir>/tests/setup-functional.ts"],
+  "maxWorkers": 1,
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(@nestjs|reflect-metadata|rxjs|pg|pg-hstore|sequelize|sequelize-typescript))"
+  ]
+}
