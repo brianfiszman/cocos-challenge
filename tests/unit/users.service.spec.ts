@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { Sequelize } from 'sequelize-typescript';
 import { getModelToken } from '@nestjs/sequelize';
 import { UserService } from '../../src/modules/users/users.service';
@@ -9,17 +10,24 @@ describe('UserService', () => {
   let mockSequelize: {
     query: jest.Mock;
   };
+  let mockUserModel: {
+    findByPk: jest.Mock;
+  };
 
   beforeEach(async () => {
     mockSequelize = {
       query: jest.fn(),
     };
 
+    mockUserModel = {
+      findByPk: jest.fn().mockResolvedValue({ id: 1 }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         { provide: Sequelize, useValue: mockSequelize },
-        { provide: getModelToken(User), useValue: {} },
+        { provide: getModelToken(User), useValue: mockUserModel },
       ],
     }).compile();
 
@@ -27,6 +35,15 @@ describe('UserService', () => {
   });
 
   describe('getPortfolio', () => {
+    it('throws NotFoundException when the user does not exist', async () => {
+      mockUserModel.findByPk.mockResolvedValueOnce(null);
+
+      await expect(service.getPortfolio(999)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(mockSequelize.query).not.toHaveBeenCalled();
+    });
+
     it('returns empty portfolio when user has no orders', async () => {
       mockSequelize.query.mockResolvedValueOnce([{ balance: '0' }]);
       mockSequelize.query.mockResolvedValueOnce([]);

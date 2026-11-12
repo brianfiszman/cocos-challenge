@@ -6,6 +6,7 @@ import request from 'supertest';
 import {
   Baseline,
   createInstrumentWithoutMarketData,
+  createUser,
   seedBaseline,
 } from '../support/fixtures';
 import { createTestApp } from '../support/test-app';
@@ -328,6 +329,35 @@ describe('Order placement (functional, real database)', () => {
       const portfolio = (await getPortfolio(baseline.userId))
         .body as Envelope<PortfolioResponse>;
       expect(portfolio.data.availableCash).toBe(1000);
+    });
+  });
+
+  describe('portfolio', () => {
+    it('returns 200 with zeros for an existing user with no orders', async () => {
+      const userId = await createUser(app, 'no-orders@example.com');
+
+      const response = await getPortfolio(userId);
+
+      expect(response.status).toBe(200);
+      expect((response.body as Envelope<PortfolioResponse>).data).toEqual({
+        totalValue: 0,
+        availableCash: 0,
+        positions: [],
+      });
+    });
+
+    it('returns 404 with the standard envelope for an unknown user', async () => {
+      const response = await getPortfolio(999999999);
+      const body = response.body as {
+        statusCode: number;
+        data: string;
+        timestamp: string;
+      };
+
+      expect(response.status).toBe(404);
+      expect(body.statusCode).toBe(404);
+      expect(typeof body.data).toBe('string');
+      expect(typeof body.timestamp).toBe('string');
     });
   });
 

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { QueryTypes } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
@@ -45,6 +45,12 @@ export class UserService {
 
   async getPortfolio(userId: number): Promise<PortfolioResult> {
     this.logger.log(`getPortfolio userId=${userId}`);
+
+    const user = await this.userModel.findByPk(userId);
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+
     const cash = await this.getCashBalance(userId);
     const positions = await this.buildPositions(userId);
 
