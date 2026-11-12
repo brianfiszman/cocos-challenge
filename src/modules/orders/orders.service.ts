@@ -3,6 +3,7 @@ import {
   Logger,
   BadRequestException,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
@@ -11,6 +12,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UserLockService } from './user-lock.service';
 import { Order } from '../../models/order.model';
 import { Instrument } from '../../models/instrument.model';
+import { User } from '../../models/user.model';
 
 export interface CreateOrderResult {
   id: number;
@@ -39,12 +41,18 @@ export class OrderService {
     @InjectModel(Order) private readonly orderModel: typeof Order,
     @InjectModel(Instrument)
     private readonly instrumentModel: typeof Instrument,
+    @InjectModel(User) private readonly userModel: typeof User,
     private readonly sequelize: Sequelize,
     private readonly userLock: UserLockService,
   ) {}
 
   async placeOrder(_orderData: CreateOrderDto): Promise<CreateOrderResult> {
-    const { side, type = 'MARKET', size, amount } = _orderData;
+    const { side, type = 'MARKET', size, amount, userId } = _orderData;
+
+    const user = await this.userModel.findByPk(userId);
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
 
     if (side === 'CASH_IN' || side === 'CASH_OUT') {
       if (size == null) {
@@ -150,6 +158,11 @@ export class OrderService {
       throw new BadRequestException(
         'instrumentId is required for BUY/SELL orders',
       );
+    }
+
+    const instrument = await this.instrumentModel.findByPk(instrumentId);
+    if (!instrument) {
+      throw new NotFoundException(`Instrument ${instrumentId} not found`);
     }
 
     let executionPrice: number;
