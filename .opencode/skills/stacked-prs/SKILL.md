@@ -16,6 +16,13 @@ branches.
   `git checkout main && git pull --ff-only && git checkout -b type/N-slug`.
   Creating a branch from the current feature branch by accident adds the
   previous issue's commit to the new PR (this happened with PR #41).
+- **Before the first commit of a task, run `git branch --show-current`. If it
+  prints `main`, stop and create the branch.** This was violated twice: PR #41
+  carried #10's commit, and #13 was committed to `main` before the branch
+  existed.
+- If the commit already happened on `main` and was not pushed, recover with:
+  `git branch type/N-slug`, `git reset --hard origin/main`,
+  `git checkout type/N-slug`.
 - A PR that does not depend on another: base `main`.
 - A PR that depends on another: base the previous PR's branch. Stack only when
   there is a real dependency; otherwise base on `main`.
@@ -133,3 +140,5 @@ real incident; future ones should too.
 - 2026-11-12 — created after #35 was closed by deleting the base branch of the
   stack. Defines the bottom-up merge order, `--merge`, the base-branch rule and
   the post-merge gates.
+- 2026-11-12 — added the pre-commit branch guard and its recovery procedure
+  after PR #41 was based on a feature branch and #13 was committed to `main`.
