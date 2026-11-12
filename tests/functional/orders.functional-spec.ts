@@ -332,6 +332,66 @@ describe('Order placement (functional, real database)', () => {
     });
   });
 
+  describe('unknown ids', () => {
+    it('returns 404 for an unknown userId on a BUY', async () => {
+      const response = await postOrder({
+        userId: 999999,
+        instrumentId: baseline.instrumentId,
+        side: 'BUY',
+        size: 1,
+        type: 'MARKET',
+      });
+      const body = response.body as {
+        statusCode: number;
+        data: string;
+        timestamp: string;
+      };
+
+      expect(response.status).toBe(404);
+      expect(body.statusCode).toBe(404);
+      expect(typeof body.data).toBe('string');
+      expect(typeof body.timestamp).toBe('string');
+    });
+
+    it('returns 404 for an unknown instrumentId on a BUY', async () => {
+      const response = await postOrder({
+        userId: baseline.userId,
+        instrumentId: 999999,
+        side: 'BUY',
+        size: 1,
+        type: 'MARKET',
+      });
+      const body = response.body as {
+        statusCode: number;
+        data: string;
+        timestamp: string;
+      };
+
+      expect(response.status).toBe(404);
+      expect(body.statusCode).toBe(404);
+      expect(typeof body.data).toBe('string');
+      expect(typeof body.timestamp).toBe('string');
+    });
+
+    it('returns 404 for an unknown userId on a CASH_IN', async () => {
+      const response = await postOrder({
+        userId: 999999,
+        side: 'CASH_IN',
+        size: 100,
+      });
+      const body = response.body as {
+        statusCode: number;
+        data: string;
+        timestamp: string;
+      };
+
+      expect(response.status).toBe(404);
+      expect(body.statusCode).toBe(404);
+      expect(typeof body.data).toBe('string');
+      expect(typeof body.timestamp).toBe('string');
+    });
+  });
+
   describe('portfolio', () => {
     it('returns 200 with zeros for an existing user with no orders', async () => {
       const userId = await createUser(app, 'no-orders@example.com');

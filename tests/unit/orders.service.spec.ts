@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
 import { Sequelize } from 'sequelize-typescript';
 import { getModelToken } from '@nestjs/sequelize';
 import { OrderService } from '../../src/modules/orders/orders.service';
@@ -6,6 +7,7 @@ import { UserLockService } from '../../src/modules/orders/user-lock.service';
 import { CreateOrderDto } from '../../src/modules/orders/dto/create-order.dto';
 import { Order } from '../../src/models/order.model';
 import { Instrument } from '../../src/models/instrument.model';
+import { User } from '../../src/models/user.model';
 
 describe('OrderService', () => {
   let service: OrderService;
@@ -20,6 +22,10 @@ describe('OrderService', () => {
   };
   let mockInstrumentModel: {
     findOne: jest.Mock;
+    findByPk: jest.Mock;
+  };
+  let mockUserModel: {
+    findByPk: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -31,6 +37,11 @@ describe('OrderService', () => {
 
     mockInstrumentModel = {
       findOne: jest.fn().mockResolvedValue({ id: '6' }),
+      findByPk: jest.fn().mockResolvedValue({ id: 1 }),
+    };
+
+    mockUserModel = {
+      findByPk: jest.fn().mockResolvedValue({ id: 1 }),
     };
 
     const mockTransaction: { commit: jest.Mock; rollback: jest.Mock } = {
@@ -52,6 +63,7 @@ describe('OrderService', () => {
           provide: getModelToken(Instrument),
           useValue: mockInstrumentModel,
         },
+        { provide: getModelToken(User), useValue: mockUserModel },
         { provide: UserLockService, useValue: { acquire: jest.fn() } },
       ],
     }).compile();
@@ -64,6 +76,41 @@ describe('OrderService', () => {
   });
 
   describe('placeOrder', () => {
+    it('throws NotFoundException for an unknown user and writes nothing', async () => {
+      mockUserModel.findByPk.mockResolvedValueOnce(null);
+
+      const dto: CreateOrderDto = {
+        userId: 999999,
+        side: 'CASH_IN',
+        size: 100,
+        type: 'MARKET',
+      };
+
+      await expect(service.placeOrder(dto)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(mockOrderModel.create).not.toHaveBeenCalled();
+      expect(mockSequelize.transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException for an unknown instrument and writes nothing', async () => {
+      mockInstrumentModel.findByPk.mockResolvedValueOnce(null);
+
+      const dto: CreateOrderDto = {
+        userId: 1,
+        instrumentId: 999999,
+        side: 'BUY',
+        size: 1,
+        type: 'MARKET',
+      };
+
+      await expect(service.placeOrder(dto)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(mockOrderModel.create).not.toHaveBeenCalled();
+      expect(mockSequelize.transaction).not.toHaveBeenCalled();
+    });
+
     it('rejects a BUY when cash is insufficient', async () => {
       mockSequelize.query
         .mockResolvedValueOnce([{ close: '100' }])
