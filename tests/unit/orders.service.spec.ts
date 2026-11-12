@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Sequelize } from 'sequelize-typescript';
 import { getModelToken } from '@nestjs/sequelize';
 import { OrderService } from '../../src/modules/orders/orders.service';
+import { UserLockService } from '../../src/modules/orders/user-lock.service';
 import { CreateOrderDto } from '../../src/modules/orders/dto/create-order.dto';
 import { Order } from '../../src/models/order.model';
 import { Instrument } from '../../src/models/instrument.model';
@@ -62,6 +63,7 @@ describe('OrderService', () => {
           provide: getModelToken(Instrument),
           useValue: mockInstrumentModel,
         },
+        { provide: UserLockService, useValue: { acquire: jest.fn() } },
       ],
     }).compile();
 

@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Transaction, QueryTypes } from 'sequelize';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UserLockService } from './user-lock.service';
 import { Order } from '../../models/order.model';
 import { Instrument } from '../../models/instrument.model';
 
@@ -39,6 +40,7 @@ export class OrderService {
     @InjectModel(Instrument)
     private readonly instrumentModel: typeof Instrument,
     private readonly sequelize: Sequelize,
+    private readonly userLock: UserLockService,
   ) {}
 
   async placeOrder(_orderData: CreateOrderDto): Promise<CreateOrderResult> {
@@ -82,6 +84,7 @@ export class OrderService {
     const t = await this.sequelize.transaction();
 
     try {
+      await this.userLock.acquire(userId, t);
       const balance = await this.getCashBalance(userId, t);
 
       if (side === 'CASH_OUT' && Number(balance) < amount) {
@@ -173,6 +176,7 @@ export class OrderService {
     const t = await this.sequelize.transaction();
 
     try {
+      await this.userLock.acquire(userId, t);
       const balance = await this.getCashBalance(userId, t);
 
       if (side === 'BUY' && Number(balance) < size * executionPrice) {

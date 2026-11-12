@@ -23,14 +23,16 @@ interface OrderResponse {
 }
 
 /**
- * Reproduction for the double-spend window in `placeTradeOrder`.
+ * Regression suite for the double-spend window in `placeTradeOrder`.
  *
- * The service validates cash with a plain `SELECT SUM(...)` inside the
- * transaction, with no row lock and no serializable isolation. Two concurrent
- * BUYs for the same user can both read the same balance, both pass the check
- * and both commit, leaving a negative balance.
+ * Before the per-user advisory lock, the service validated cash with a plain
+ * `SELECT SUM(...)` inside the transaction, with no row lock and no
+ * serializable isolation. Two concurrent BUYs for the same user could both
+ * read the same balance, both pass the check and both commit, leaving a
+ * negative balance.
  *
- * This test is EXPECTED TO FAIL until the per-user advisory lock lands.
+ * The lock is transaction-scoped, so it must also be released on commit: the
+ * second test covers a normal order that runs after the first one finishes.
  */
 describe('Concurrent order placement (functional, real database)', () => {
   const USERS = 5;
@@ -87,53 +89,75 @@ describe('Concurrent order placement (functional, real database)', () => {
     }
   });
 
-  it.failing(
-    'never spends more cash than available when two BUYs run in parallel',
-    async () => {
-      const requests = userIds.flatMap((userId) =>
-        [0, 1].map(() =>
-          request(server()).post('/orders').send({
-            userId,
-            instrumentId: instruments.instrumentId,
-            side: 'BUY',
-            size: ORDER_SIZE,
-            type: 'MARKET',
-          }),
-        ),
-      );
-
-      const responses = await Promise.all(requests);
-
-      // The order of `responses` matches the order of `requests`, which is
-      // two entries per user, in `userIds` order.
-      const statusesByUser = userIds.map((userId, index) => {
-        const pair = responses.slice(index * 2, index * 2 + 2);
-        return {
+  it('never spends more cash than available when two BUYs run in parallel', async () => {
+    const requests = userIds.flatMap((userId) =>
+      [0, 1].map(() =>
+        request(server()).post('/orders').send({
           userId,
-          statuses: pair.map(
-            (response) =>
-              (response.body as Envelope<OrderResponse>).data?.status,
-          ),
-        };
-      });
+          instrumentId: instruments.instrumentId,
+          side: 'BUY',
+          size: ORDER_SIZE,
+          type: 'MARKET',
+        }),
+      ),
+    );
 
-      const violations: string[] = [];
+    const responses = await Promise.all(requests);
 
-      for (const { userId, statuses } of statusesByUser) {
-        const filled = statuses.filter((status) => status === 'FILLED').length;
-        const balance = await balanceOf(userId);
+    // The order of `responses` matches the order of `requests`, which is
+    // two entries per user, in `userIds` order.
+    const statusesByUser = userIds.map((userId, index) => {
+      const pair = responses.slice(index * 2, index * 2 + 2);
+      return {
+        userId,
+        statuses: pair.map(
+          (response) => (response.body as Envelope<OrderResponse>).data?.status,
+        ),
+      };
+    });
 
-        if (filled > 1) {
-          violations.push(
-            `user ${userId}: ${filled} FILLED orders (expected at most 1)`,
-          );
-        }
-        if (balance < 0) {
-          violations.push(`user ${userId}: negative balance ${balance}`);
-        }
+    const violations: string[] = [];
+
+    for (const { userId, statuses } of statusesByUser) {
+      const filled = statuses.filter((status) => status === 'FILLED').length;
+      const balance = await balanceOf(userId);
+
+      if (filled > 1) {
+        violations.push(
+          `user ${userId}: ${filled} FILLED orders (expected at most 1)`,
+        );
       }
+      if (balance < 0) {
+        violations.push(`user ${userId}: negative balance ${balance}`);
+      }
+    }
 
-      expect(violations).toEqual([]);
-    },
-  );
+    expect(violations).toEqual([]);
+  });
+
+  it('releases the lock so a later order from the same user succeeds', async () => {
+    const userId = userIds[0];
+
+    const first = await request(server()).post('/orders').send({
+      userId,
+      instrumentId: instruments.instrumentId,
+      side: 'BUY',
+      size: ORDER_SIZE,
+      type: 'MARKET',
+    });
+
+    expect(first.status).toBe(201);
+    expect((first.body as Envelope<OrderResponse>).data.status).toBe('FILLED');
+
+    const second = await request(server()).post('/orders').send({
+      userId,
+      instrumentId: instruments.instrumentId,
+      side: 'BUY',
+      size: 10,
+      type: 'MARKET',
+    });
+
+    expect(second.status).toBe(201);
+    expect((second.body as Envelope<OrderResponse>).data.status).toBe('FILLED');
+  });
 });
