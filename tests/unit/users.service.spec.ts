@@ -119,6 +119,32 @@ describe('UserService', () => {
       expect(result.totalValue).toBe(3000);
     });
 
+    it('marks a position without market data and keeps it out of totalValue', async () => {
+      mockSequelize.query.mockResolvedValueOnce([{ balance: '500' }]);
+      mockSequelize.query.mockResolvedValueOnce([
+        { instrumentId: 1, size: '10', buySize: '10', buyCost: '1000' },
+      ]);
+      mockSequelize.query.mockResolvedValueOnce([]);
+      mockSequelize.query.mockResolvedValueOnce([
+        { ticker: 'NODATA', name: 'No Market Data Inc.' },
+      ]);
+
+      const result = await service.getPortfolio(1);
+
+      expect(result.positions).toEqual([
+        {
+          instrumentId: 1,
+          ticker: 'NODATA',
+          name: 'No Market Data Inc.',
+          size: 10,
+          value: null,
+          returnPct: null,
+          priceAvailable: false,
+        },
+      ]);
+      expect(result.totalValue).toBe(500);
+    });
+
     it('excludes positions with zero net size', async () => {
       mockSequelize.query.mockResolvedValueOnce([{ balance: '0' }]);
       mockSequelize.query.mockResolvedValueOnce([]);

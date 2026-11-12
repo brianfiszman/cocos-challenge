@@ -9,8 +9,11 @@ export interface PositionItem {
   ticker: string;
   name: string;
   size: number;
-  value: number;
-  returnPct: number;
+  /** `null` when the instrument has no market data; never a silent zero. */
+  value: number | null;
+  /** `null` when `value` is unknown. */
+  returnPct: number | null;
+  priceAvailable: boolean;
 }
 
 export interface PortfolioResult {
@@ -54,7 +57,8 @@ export class UserService {
     const cash = await this.getCashBalance(userId);
     const positions = await this.buildPositions(userId);
 
-    const totalValue = cash + positions.reduce((sum, p) => sum + p.value, 0);
+    const totalValue =
+      cash + positions.reduce((sum, p) => sum + (p.value ?? 0), 0);
 
     return {
       totalValue,
@@ -96,8 +100,7 @@ export class UserService {
          ORDER BY datetime DESC LIMIT 1`,
         { replacements: { instrumentId }, type: QueryTypes.SELECT },
       );
-      const close: number =
-        priceRows.length > 0 ? Number(priceRows[0].close) : 0;
+      const priceAvailable = priceRows.length > 0;
 
       const instrumentRows = await this.sequelize.query<InstrumentRow>(
         `SELECT ticker, name FROM instruments
@@ -109,15 +112,21 @@ export class UserService {
       const name: string =
         instrumentRows.length > 0 ? instrumentRows[0].name : '';
 
-      const value: number = size * close;
       const buySize: number = Number(row.buySize);
       const buyCost: number = Number(row.buyCost);
-      let returnPct = 0;
-      if (size > 0 && buySize > 0) {
-        const avgCost = buyCost / buySize;
-        const costBasis = size * avgCost;
-        if (costBasis > 0) {
-          returnPct = (value - costBasis) / costBasis;
+
+      let value: number | null = null;
+      let returnPct: number | null = null;
+      if (priceAvailable) {
+        const close = Number(priceRows[0].close);
+        value = size * close;
+        returnPct = 0;
+        if (size > 0 && buySize > 0) {
+          const avgCost = buyCost / buySize;
+          const costBasis = size * avgCost;
+          if (costBasis > 0) {
+            returnPct = (value - costBasis) / costBasis;
+          }
         }
       }
 
@@ -128,6 +137,7 @@ export class UserService {
         size,
         value,
         returnPct,
+        priceAvailable,
       });
     }
 
