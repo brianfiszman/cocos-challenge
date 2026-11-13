@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
-# Run the full verification suite: typecheck, lint, build, unit + e2e tests.
-# Use this after every edit so errors are caught before they reach the user.
+# Run the database-free verification suite: typecheck, lint, build, unit + e2e.
+# For the full gate including the functional suite, run scripts/check-full.sh
+# (or `yarn check:full`), which starts and stops Postgres around it.
 set -e
 
 echo "=== TSC ==="
@@ -15,6 +16,7 @@ yarn build
 echo "=== SHELL SYNTAX ==="
 sh -n scripts/entrypoint.sh
 sh -n scripts/check.sh
+sh -n scripts/check-full.sh
 
 echo "=== UNIT TESTS ==="
 yarn test

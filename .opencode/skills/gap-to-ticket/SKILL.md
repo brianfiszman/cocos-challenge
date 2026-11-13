@@ -156,6 +156,8 @@ zsh -c 'source ~/.zshrc >/dev/null 2>&1; export GH_TOKEN="$GH_PERSONAL_TOKEN_CLA
 5. **Flip any `it.failing`** in the same commit that fixes the bug.
 6. **Run the gates**: `npx tsc --noEmit`, `yarn lint`, `yarn test`,
    `yarn test:e2e`, and `yarn test:functional` when SQL or DB behavior changed.
+   `yarn check:full` runs all of them in one shot, including the functional
+   suite (it starts and stops Postgres as needed).
 7. **Commit**: `type(scope): summary`; the body explains the failure and the fix
    and ends with `Closes #N`.
 
@@ -216,3 +218,4 @@ part of the codebase, not a note.
 - 2026-11-13 — added the no-invented-numbers principle, the DTO-bounds trap in
   the test-first loop and the decision-ticket protocol. Harness detail moved to
   `functional-testing`.
+- 2026-11-13 — gates can run in one shot with `yarn check:full` (#28).

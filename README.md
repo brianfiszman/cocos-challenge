@@ -178,9 +178,15 @@ yarn test
 # E2E tests (mocked services, tests controllers/interceptors/filters)
 yarn test:e2e
 
-# Full verification suite (typecheck + lint + build + unit + e2e)
+# DB-free verification (typecheck + lint + build + unit + e2e)
 ./scripts/check.sh
+
+# Full verification before opening a PR: starts Postgres, ensures database_test,
+# runs check.sh and the functional suite, and stops Postgres only if it started it
+yarn check:full
 ```
+
+`yarn check:full` requires Docker. If the `postgres_db` container is already running, it is left running.
 
 ## Docker
 
