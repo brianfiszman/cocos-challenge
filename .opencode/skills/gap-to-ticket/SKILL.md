@@ -29,6 +29,10 @@ minutes. Do not repeat it.
      chat, tell the user to revoke it.
 4. **Merging needs explicit approval.** The ticket is permission to implement,
    not to merge. Load `stacked-prs` and wait for the user's go-ahead.
+5. **No invented numbers.** Read paths degrade explicitly: `null` plus a flag,
+   excluded from aggregates. Write paths fail fast: 4xx before the INSERT, never
+   a 500 from a constraint. If a metric cannot be computed, return `null`; never
+   pretend it is `0`.
 
 ## 0. Read the board first
 
@@ -145,13 +149,27 @@ zsh -c 'source ~/.zshrc >/dev/null 2>&1; export GH_TOKEN="$GH_PERSONAL_TOKEN_CLA
    (see §8).
 3. **Run it alone** and capture the failure (`expected` vs `received`). If it
    passes, stop: the diagnosis is wrong or the test is not exercising the path.
-   Update the issue.
+   Update the issue. If an HTTP test returns 400, check the DTO bounds first: an
+   out-of-range id never reaches the service and hides the real failure (see
+   `functional-testing`).
 4. **Implement the smallest fix** that makes it pass.
 5. **Flip any `it.failing`** in the same commit that fixes the bug.
 6. **Run the gates**: `npx tsc --noEmit`, `yarn lint`, `yarn test`,
    `yarn test:e2e`, and `yarn test:functional` when SQL or DB behavior changed.
 7. **Commit**: `type(scope): summary`; the body explains the failure and the fix
    and ends with `Closes #N`.
+
+### Decision tickets
+
+When the acceptance criterion is "decide and document" (unit of a metric,
+behavior for an edge case, an explicit degradation), the decision lives in
+three places:
+
+1. the README or the decision log, as the contract;
+2. an issue comment explaining the alternative that was rejected and why;
+3. a test that fixes the chosen convention, so a later change fails loudly.
+
+A decision that exists only in the issue comment is not implemented.
 
 ## 7. Definition of Done
 
@@ -174,16 +192,13 @@ zsh -c 'source ~/.zshrc >/dev/null 2>&1; export GH_TOKEN="$GH_PERSONAL_TOKEN_CLA
 | E2E | `tests/integration/*.e2e-spec.ts` | `yarn test:e2e` | real controllers, pipes, filters and interceptors; mocked services; no database |
 | Functional | `tests/functional/*.functional-spec.ts` | `yarn test:functional` | real `AppModule` + Postgres (`database_test`) |
 
-- DB-backed behavior belongs in **functional**, never in e2e: `test:e2e` and
-  `scripts/check.sh` must stay database-free.
-- Functional setup: `resetSchema` in `beforeAll`, `truncateAll` in `beforeEach`,
-  and fixtures from `tests/support/fixtures.ts`. The config uses
-  `maxWorkers: 1`.
-- Concurrency: use real overlapping transactions and synchronize on a DB lock
-  (`pg_stat_activity`, `FOR UPDATE`), never a bare `sleep`. Assert the final DB
-  state, not only the HTTP response.
+- DB-backed behavior belongs in **functional**, never in e2e: `test:e2e` (and
+  `scripts/check.sh`) must stay database-free.
 - Reproduce before fixing. A test that does not fail before the fix is not a
   regression test.
+- Harness setup, fixtures, concurrency recipes, the DTO-bounds trap and the PR
+  checklist live in the `functional-testing` skill. Load it before writing a
+  DB-backed test.
 
 ## 9. Keep this skill current
 
@@ -198,3 +213,6 @@ part of the codebase, not a note.
 - 2026-11-12 — added the hard token rule, the test-first loop, Definition of
   Done, board lifecycle, testing layers and the explicit milestone map. PR
   workflow moved to `stacked-prs`.
+- 2026-11-13 — added the no-invented-numbers principle, the DTO-bounds trap in
+  the test-first loop and the decision-ticket protocol. Harness detail moved to
+  `functional-testing`.
