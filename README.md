@@ -76,6 +76,7 @@ Request body (`CreateOrderDto`):
 - `CASH_IN` adds funds (modeled with an ARS instrument, ticker `ARS`, type `MONEDA`); `CASH_OUT` deducts funds (rejected if insufficient balance).
 - Exactly one of `size` or `amount` is required for BUY/SELL orders (not both).
 - `size` must be a positive integer for BUY/SELL orders.
+- `CASH_IN`/`CASH_OUT` only accept `userId`, `side`, `size` and an optional `type: MARKET`. `instrumentId`, `amount`, `price` and `type: LIMIT` are rejected with 400 because they have no effect on a cash transfer.
 - Infrastructure errors (DB failures, etc.) return HTTP 500, not `REJECTED`.
 
 Response (201):
