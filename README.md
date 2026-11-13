@@ -155,6 +155,20 @@ Returns up to 50 instruments matching the query in `ticker` or `name` (case-inse
 
 `id` is returned as a string due to Sequelize `BIGINT` handling.
 
+## Assumptions and design decisions
+
+| Decision | Rationale |
+|---|---|
+| Every response uses `{ statusCode, data, timestamp }` | A single contract for success and errors; the HTTP status remains the source of truth (`TransformInterceptor`, `HttpExceptionFilter`). |
+| `LIMIT` orders do not reserve funds or shares | A `NEW` order has not executed; cash and positions only move on `FILLED` orders, as the spec requires. |
+| Invalid input is 4xx; market rejections are persisted as `REJECTED` | A missing user/instrument or a malformed DTO is a client error, not a market outcome. Insufficient funds/shares is a business rejection and stays in `orders`. |
+| ARS is an instrument of type `MONEDA` | The spec models cash as an instrument; `CASH_IN`/`CASH_OUT` reference the ARS row in `orders.instrumentId`. |
+| Soft deletes are paranoid | `destroy()` sets `deletedAt` and every aggregate filters it, so deleted rows stop affecting money math (see [Soft deletes](#soft-deletes)). |
+| No authentication | Explicitly out of scope in the spec; `userId` comes from the request. |
+| No Kafka or outbox yet | One deployable, one database, no cross-service consumer. Revisit only when a second service with its own DB needs events ([#25](https://github.com/brianfiszman/cocos-challenge/issues/25)). |
+| `returnPct` and `dailyReturnPct` are percentages | The field names and the spec's `%`; `5` means `5%`. Short positions return `null` because their cost basis is not derivable. |
+| An unpriced position is `null` + `priceAvailable: false` | The API never invents a zero; the position is listed but excluded from `totalValue` (see [Portfolio](#portfolio-get-portfoliouserid)). |
+
 ## Testing
 
 ```bash
