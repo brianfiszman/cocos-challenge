@@ -188,6 +188,15 @@ yarn check:full
 
 `yarn check:full` requires Docker. If the `postgres_db` container is already running, it is left running.
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on `main`:
+
+- **checks (typecheck, lint, build, unit, e2e)**: the database-free `./scripts/check.sh`;
+- **functional (Postgres)**: `yarn test:functional` against a `postgres:16-alpine` service that creates `database_test`.
+
+Both jobs appear as status checks on the pull request and can be marked as required in the branch protection rules.
+
 ## Docker
 
 The Docker setup uses a bind-mount approach for fast development:
