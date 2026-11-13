@@ -13,6 +13,8 @@ module.exports = {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
+    // BUY/SELL sizes must be integers: `placeOrder` rejects fractional sizes,
+    // so seed data has to be reproducible through the API.
     await queryInterface.bulkInsert('orders', [
       {
         instrumentId: 6,
@@ -66,7 +68,7 @@ module.exports = {
         instrumentId: 4,
         userId: 4,
         side: 'BUY',
-        size: 0.5,
+        size: 1,
         price: 63500,
         type: 'MARKET',
         status: 'FILLED',
@@ -78,7 +80,7 @@ module.exports = {
         instrumentId: 5,
         userId: 5,
         side: 'SELL',
-        size: 1.5,
+        size: 2,
         price: 3450,
         type: 'LIMIT',
         status: 'CANCELLED',
