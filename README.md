@@ -142,7 +142,7 @@ Cash reflects all FILLED orders: `CASH_IN - CASH_OUT - BUY cost + SELL proceeds`
 
 ### Asset Search (`GET /assets?q=<query>`)
 
-Returns up to 50 instruments matching the query in `ticker` or `name` (case-insensitive).
+Returns up to 50 instruments matching the query in `ticker` or `name` (case-insensitive). Cash instruments (`type: MONEDA`) are excluded: the endpoint searches tradable market instruments only.
 
 ```json
 {

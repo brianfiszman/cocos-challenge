@@ -30,6 +30,8 @@ export class MarketDataService {
 
     const rows = await this.instrumentModel.findAll({
       where: {
+        // Cash (MONEDA) is not a tradable market instrument.
+        type: { [Op.notILike]: 'MONEDA' },
         [Op.or]: [
           { ticker: { [Op.iLike]: pattern } },
           { name: { [Op.iLike]: pattern } },
