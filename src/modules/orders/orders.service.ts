@@ -55,6 +55,7 @@ export class OrderService {
     }
 
     if (side === 'CASH_IN' || side === 'CASH_OUT') {
+      this.assertCashTransferFields(_orderData);
       if (size == null) {
         throw new BadRequestException('size is required for cash transfers');
       }
@@ -73,6 +74,24 @@ export class OrderService {
     }
 
     return this.placeTradeOrder(_orderData, type);
+  }
+
+  /**
+   * A cash transfer only uses `side` and `size`; the instrument is always ARS
+   * and the order is always MARKET. Reject fields that would be silently
+   * ignored instead of letting the client believe they have an effect.
+   */
+  private assertCashTransferFields(dto: CreateOrderDto): void {
+    if (dto.instrumentId != null || dto.amount != null || dto.price != null) {
+      throw new BadRequestException(
+        'Cash transfers do not accept instrumentId, amount or price',
+      );
+    }
+    if (dto.type != null && dto.type !== 'MARKET') {
+      throw new BadRequestException(
+        'Cash transfers are always MARKET; LIMIT is not allowed',
+      );
+    }
   }
 
   private async placeCashTransfer(

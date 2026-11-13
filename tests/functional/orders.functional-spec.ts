@@ -335,6 +335,99 @@ describe('Order placement (functional, real database)', () => {
     });
   });
 
+  describe('cash transfer field validation', () => {
+    const orderCountInDb = async (): Promise<number> => {
+      const rows = await sequelize.query<{ count: string }>(
+        'SELECT COUNT(*) AS count FROM orders',
+        { type: QueryTypes.SELECT },
+      );
+      return Number(rows[0].count);
+    };
+
+    const expectRejectedWithoutWrite = async (
+      response: Awaited<ReturnType<typeof postOrder>>,
+    ): Promise<void> => {
+      expect(response.status).toBe(400);
+      const body = response.body as {
+        statusCode: number;
+        data: string;
+        timestamp: string;
+      };
+      expect(body.statusCode).toBe(400);
+      expect(typeof body.data).toBe('string');
+
+      const portfolio = (await getPortfolio(baseline.userId))
+        .body as Envelope<PortfolioResponse>;
+      expect(portfolio.data.availableCash).toBe(1000);
+    };
+
+    it('rejects instrumentId on a CASH_IN', async () => {
+      const before = await orderCountInDb();
+      const response = await postOrder({
+        userId: baseline.userId,
+        side: 'CASH_IN',
+        size: 100,
+        instrumentId: baseline.instrumentId,
+      });
+
+      await expectRejectedWithoutWrite(response);
+      expect(await orderCountInDb()).toBe(before);
+    });
+
+    it('rejects price on a CASH_OUT', async () => {
+      const before = await orderCountInDb();
+      const response = await postOrder({
+        userId: baseline.userId,
+        side: 'CASH_OUT',
+        size: 100,
+        price: 10,
+      });
+
+      await expectRejectedWithoutWrite(response);
+      expect(await orderCountInDb()).toBe(before);
+    });
+
+    it('rejects amount on a CASH_IN', async () => {
+      const before = await orderCountInDb();
+      const response = await postOrder({
+        userId: baseline.userId,
+        side: 'CASH_IN',
+        size: 100,
+        amount: 50,
+      });
+
+      await expectRejectedWithoutWrite(response);
+      expect(await orderCountInDb()).toBe(before);
+    });
+
+    it('rejects LIMIT on a CASH_IN', async () => {
+      const before = await orderCountInDb();
+      const response = await postOrder({
+        userId: baseline.userId,
+        side: 'CASH_IN',
+        size: 100,
+        type: 'LIMIT',
+      });
+
+      await expectRejectedWithoutWrite(response);
+      expect(await orderCountInDb()).toBe(before);
+    });
+
+    it('accepts an explicit MARKET type on a CASH_IN', async () => {
+      const response = await postOrder({
+        userId: baseline.userId,
+        side: 'CASH_IN',
+        size: 100,
+        type: 'MARKET',
+      });
+
+      expect(response.status).toBe(201);
+      const portfolio = (await getPortfolio(baseline.userId))
+        .body as Envelope<PortfolioResponse>;
+      expect(portfolio.data.availableCash).toBe(1100);
+    });
+  });
+
   describe('unknown ids', () => {
     it('returns 404 for an unknown userId on a BUY', async () => {
       const response = await postOrder({
