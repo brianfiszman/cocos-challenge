@@ -1,75 +1,34 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
+/**
+ * Make `orders.instrumentId` nullable for CASH_IN/CASH_OUT orders.
+ *
+ * The enum columns (`side`, `type`, `status`) and `price` are already created
+ * with their final definition by 20260915000003-create-orders.js. This
+ * migration used to re-apply them through `changeColumn`, which was redundant;
+ * its `down` restored lowercase enum values that do not exist and failed on
+ * any table with rows.
+ *
+ * Postgres keeps the foreign key valid across a nullability change, so the
+ * constraint is not dropped or recreated here.
+ *
+ * Undo limitation: `down` restores NOT NULL, so it fails if the table still
+ * has orders with a NULL instrumentId. The application always points cash
+ * orders at the ARS instrument, so only rows written while the column was
+ * nullable are affected; backfill them before undoing.
+ *
+ * @type {import('sequelize-cli').Migration}
+ */
 module.exports = {
-  async up(queryInterface, Sequelize) {
-    // Make instrumentId nullable for CASH_IN/CASH_OUT orders.
-    // Must drop the existing FK first because changeColumn with
-    // references creates a duplicate constraint.
-    await queryInterface.sequelize.query(
-      'ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_instrumentId_fkey',
-    );
+  async up(queryInterface) {
     await queryInterface.sequelize.query(
       'ALTER TABLE orders ALTER COLUMN "instrumentId" DROP NOT NULL',
     );
-    await queryInterface.sequelize.query(
-      'ALTER TABLE orders ADD CONSTRAINT orders_instrumentId_fkey ' +
-      'FOREIGN KEY ("instrumentId") REFERENCES instruments(id) ' +
-      'ON DELETE CASCADE',
-    );
-
-    await queryInterface.changeColumn('orders', 'side', {
-      type: Sequelize.ENUM('BUY', 'SELL', 'CASH_IN', 'CASH_OUT'),
-      allowNull: false,
-      defaultValue: 'BUY',
-    });
-    await queryInterface.changeColumn('orders', 'price', {
-      type: Sequelize.DECIMAL(18, 8),
-      allowNull: true,
-    });
-    await queryInterface.changeColumn('orders', 'type', {
-      type: Sequelize.ENUM('MARKET', 'LIMIT'),
-      allowNull: false,
-      defaultValue: 'MARKET',
-    });
-    await queryInterface.changeColumn('orders', 'status', {
-      type: Sequelize.ENUM('NEW', 'FILLED', 'REJECTED', 'CANCELLED'),
-      allowNull: false,
-      defaultValue: 'NEW',
-    });
   },
 
-  async down(queryInterface, Sequelize) {
-    await queryInterface.sequelize.query(
-      'ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_instrumentId_fkey',
-    );
+  async down(queryInterface) {
     await queryInterface.sequelize.query(
       'ALTER TABLE orders ALTER COLUMN "instrumentId" SET NOT NULL',
     );
-    await queryInterface.sequelize.query(
-      'ALTER TABLE orders ADD CONSTRAINT orders_instrumentId_fkey ' +
-      'FOREIGN KEY ("instrumentId") REFERENCES instruments(id) ' +
-      'ON DELETE CASCADE',
-    );
-
-    await queryInterface.changeColumn('orders', 'side', {
-      type: Sequelize.ENUM('buy', 'sell'),
-      allowNull: false,
-      defaultValue: 'buy',
-    });
-    await queryInterface.changeColumn('orders', 'price', {
-      type: Sequelize.DECIMAL(18, 8),
-      allowNull: false,
-    });
-    await queryInterface.changeColumn('orders', 'type', {
-      type: Sequelize.ENUM('market', 'limit'),
-      allowNull: false,
-      defaultValue: 'market',
-    });
-    await queryInterface.changeColumn('orders', 'status', {
-      type: Sequelize.ENUM('pending', 'filled', 'cancelled'),
-      allowNull: false,
-      defaultValue: 'pending',
-    });
   },
 };
