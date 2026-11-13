@@ -22,8 +22,10 @@ description: Use whenever writing, running, extending or debugging tests in this
 | E2E | `tests/integration/*.e2e-spec.ts` | `yarn test:e2e` | real controllers, pipes, filters and interceptors; mocked services; no database |
 | Functional | `tests/functional/*.functional-spec.ts` | `yarn test:functional` | real `AppModule` + Postgres (`database_test`) |
 
-`scripts/check.sh` runs typecheck, lint, build, unit and e2e. The functional
-suite is not part of it yet (tracked in #28), so run it explicitly.
+`scripts/check.sh` is the DB-free gate (typecheck, lint, build, unit, e2e).
+`yarn check:full` runs it plus the functional suite: it starts Postgres if
+needed, ensures `database_test`, and stops the container only if it started it.
+Run `check:full` before opening a PR.
 
 If a test can prove the bug without a database, put it in unit or e2e. Use
 functional only when the behavior depends on SQL, transactions, locks,
@@ -151,3 +153,5 @@ update this file in the same PR that changes the harness.
 - 2026-11-13 — created after #12 (DTO-bound trap), #13/#14/#15 (decision
   tests), and the concurrency suite. Extracted the functional detail out of
   `gap-to-ticket`.
+- 2026-11-13 — `yarn check:full` runs the DB-free gate plus the functional
+  suite and manages the Postgres container (#28).
