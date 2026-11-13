@@ -12,5 +12,9 @@ Before pushing, opening, retargeting or merging a PR, load the `stacked-prs`
 skill (`.opencode/skills/stacked-prs/SKILL.md`). Merging needs the user's
 explicit approval.
 
+Before writing or debugging a DB-backed test, load the `functional-testing`
+skill (`.opencode/skills/functional-testing/SKILL.md`). Unit and e2e tests must
+stay database-free.
+
 Spec: https://github.com/cocoscap/cocos-challenge/blob/main/backend-challenge.md
 Board: https://github.com/users/brianfiszman/projects/5
