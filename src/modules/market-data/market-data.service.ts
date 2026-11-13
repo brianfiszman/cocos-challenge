@@ -41,7 +41,7 @@ export class MarketDataService {
     });
 
     return rows.map((r) => ({
-      id: r.id,
+      id: Number(r.id),
       ticker: r.ticker,
       name: r.name,
       type: r.type,
