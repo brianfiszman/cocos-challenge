@@ -117,8 +117,8 @@ Only orders with status `NEW` can be cancelled.
         "name": "Apple Inc.",
         "size": 10,
         "value": 1820.6,
-        "returnPct": -0.017,
-        "dailyReturnPct": 0.0114,
+        "returnPct": -1.7,
+        "dailyReturnPct": 1.14,
         "priceAvailable": true
       }
     ]
@@ -127,11 +127,11 @@ Only orders with status `NEW` can be cancelled.
 }
 ```
 
-Cash reflects all FILLED orders: `CASH_IN - CASH_OUT - BUY cost + SELL proceeds`. `returnPct` is based on cost basis: the average buy price (`avgCost = totalBuyCost / totalBuySize`) vs current market value (`returnPct = (value - avgCost) / avgCost`).
+Cash reflects all FILLED orders: `CASH_IN - CASH_OUT - BUY cost + SELL proceeds`. `returnPct` is based on cost basis: the average buy price (`avgCost = totalBuyCost / totalBuySize`) vs current market value (`returnPct = (value - costBasis) / costBasis * 100`). Both `returnPct` and `dailyReturnPct` are percentages: `5` means `5%`. `returnPct` is `null` for a short position (`size < 0`), because the aggregates only track buy cost and a short's cost basis cannot be derived; `dailyReturnPct` is instrument-level and is still reported for shorts.
 
 **Decision:** when an instrument has no `marketdata` row, its position cannot be valued. The position is still listed with `priceAvailable: false`, `value: null` and `returnPct: null`, and it is excluded from `totalValue`. `totalValue` is cash plus the market value of the positions that can be priced; the API never invents a zero.
 
-`dailyReturnPct` is the daily return of the position's instrument, taken from the latest `marketdata` row: `(close - previousClose) / previousClose`. Like `returnPct` it is a fraction; it is `null` when the position has no market data or `previousClose` is not positive.
+`dailyReturnPct` is the daily return of the position's instrument, taken from the latest `marketdata` row: `(close - previousClose) / previousClose * 100`. It is `null` when the position has no market data or `previousClose` is not positive.
 
 ### Soft deletes
 

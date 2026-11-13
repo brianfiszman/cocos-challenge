@@ -492,7 +492,7 @@ describe('Order placement (functional, real database)', () => {
       );
 
       expect(position?.priceAvailable).toBe(true);
-      expect(position?.dailyReturnPct).toBeCloseTo(0.2);
+      expect(position?.dailyReturnPct).toBeCloseTo(20);
     });
   });
 

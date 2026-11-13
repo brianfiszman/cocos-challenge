@@ -94,8 +94,8 @@ describe('UserService', () => {
       expect(result.positions[0].name).toBe('Apple Inc.');
       expect(result.positions[0].size).toBe(10);
       expect(result.positions[0].value).toBe(1852);
-      expect(result.positions[0].returnPct).toBeCloseTo(0.852, 5);
-      expect(result.positions[0].dailyReturnPct).toBeCloseTo(0.1575, 5);
+      expect(result.positions[0].returnPct).toBeCloseTo(85.2, 5);
+      expect(result.positions[0].dailyReturnPct).toBeCloseTo(15.75, 5);
       expect(result.totalValue).toBe(2852);
     });
 
@@ -170,7 +170,28 @@ describe('UserService', () => {
 
       const result = await service.getPortfolio(1);
 
-      expect(result.positions[0].returnPct).toBeCloseTo(-0.1, 5);
+      expect(result.positions[0].returnPct).toBeCloseTo(-10, 5);
+    });
+
+    it('returns null returnPct for a short position but keeps the daily return', async () => {
+      mockSequelize.query.mockResolvedValueOnce([{ balance: '0' }]);
+      mockSequelize.query.mockResolvedValueOnce([
+        { instrumentId: 1, size: '-5', buySize: '5', buyCost: '500' },
+      ]);
+      mockSequelize.query.mockResolvedValueOnce([
+        { close: '90', previousClose: '100' },
+      ]);
+      mockSequelize.query.mockResolvedValueOnce([
+        { ticker: 'AAPL', name: 'Apple Inc.' },
+      ]);
+
+      const result = await service.getPortfolio(1);
+      const position = result.positions[0];
+
+      expect(position.size).toBe(-5);
+      expect(position.value).toBe(-450);
+      expect(position.returnPct).toBeNull();
+      expect(position.dailyReturnPct).toBeCloseTo(-10, 5);
     });
   });
 });
