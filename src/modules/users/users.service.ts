@@ -11,9 +11,9 @@ export interface PositionItem {
   size: number;
   /** `null` when the instrument has no market data; never a silent zero. */
   value: number | null;
-  /** `null` when `value` is unknown. */
+  /** Percentage (5 means 5%). `null` for short positions, whose cost basis is not derivable. */
   returnPct: number | null;
-  /** `(close - previousClose) / previousClose` for the latest market data row. */
+  /** Percentage (5 means 5%): `(close - previousClose) / previousClose * 100`. */
   dailyReturnPct: number | null;
   priceAvailable: boolean;
 }
@@ -125,14 +125,15 @@ export class UserService {
         const close = Number(priceRows[0].close);
         const previousClose = Number(priceRows[0].previousClose);
         value = size * close;
-        returnPct = 0;
         dailyReturnPct =
-          previousClose > 0 ? (close - previousClose) / previousClose : null;
+          previousClose > 0
+            ? ((close - previousClose) / previousClose) * 100
+            : null;
         if (size > 0 && buySize > 0) {
           const avgCost = buyCost / buySize;
           const costBasis = size * avgCost;
           if (costBasis > 0) {
-            returnPct = (value - costBasis) / costBasis;
+            returnPct = ((value - costBasis) / costBasis) * 100;
           }
         }
       }
