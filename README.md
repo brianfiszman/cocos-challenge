@@ -148,13 +148,13 @@ Returns up to 50 instruments matching the query in `ticker` or `name` (case-inse
 {
   "statusCode": 200,
   "data": [
-    { "id": "1", "ticker": "AAPL", "name": "Apple Inc.", "type": "stock" }
+    { "id": 1, "ticker": "AAPL", "name": "Apple Inc.", "type": "stock" }
   ],
   "timestamp": "2026-09-17T20:30:00.000Z"
 }
 ```
 
-`id` is returned as a string due to Sequelize `BIGINT` handling.
+`id` is a number, consistent with `instrumentId` in `/portfolio` and in `POST /orders`. The column is `BIGINT`, but instrument ids are bounded to 999999, so the conversion is safe.
 
 ## Assumptions and design decisions
 
@@ -169,6 +169,7 @@ Returns up to 50 instruments matching the query in `ticker` or `name` (case-inse
 | No Kafka or outbox yet | One deployable, one database, no cross-service consumer. Revisit only when a second service with its own DB needs events ([#25](https://github.com/brianfiszman/cocos-challenge/issues/25)). |
 | `returnPct` and `dailyReturnPct` are percentages | The field names and the spec's `%`; `5` means `5%`. Short positions return `null` because their cost basis is not derivable. |
 | An unpriced position is `null` + `priceAvailable: false` | The API never invents a zero; the position is listed but excluded from `totalValue` (see [Portfolio](#portfolio-get-portfoliouserid)). |
+| Instrument ids are numbers in responses | `/assets.id` and `/portfolio.positions[].instrumentId` are numbers, matching the `instrumentId` accepted by `POST /orders`. Ids are bounded to 999999, so converting from `BIGINT` is safe. |
 
 ## Testing
 
