@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./tests/jest-e2e.json",
     "test:functional": "jest --config ./tests/jest-functional.json --runInBand",
+    "pretest:functional": "node scripts/ensure-test-db.js",
     "check:full": "sh scripts/check-full.sh"
   },
   "dependencies": {

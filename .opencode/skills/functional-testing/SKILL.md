@@ -35,6 +35,8 @@ constraints or Sequelize scopes.
 
 - Postgres reachable at `localhost:5432`, user/password `postgres`, with a
   `database_test` database. The local container is `postgres_db`.
+  `pretest:functional` (`scripts/ensure-test-db.js`) creates the database if
+  it is missing and fails with a clear message if Postgres is unreachable.
 - `tests/setup-functional.ts` forces `DB_NAME=database_test` so a `.env` file
   cannot point the suite at the development database.
 - The functional config uses `maxWorkers: 1`. Do not parallelize: every spec
@@ -155,3 +157,5 @@ update this file in the same PR that changes the harness.
   `gap-to-ticket`.
 - 2026-11-13 — `yarn check:full` runs the DB-free gate plus the functional
   suite and manages the Postgres container (#28).
+- 2026-11-13 — `pretest:functional` ensures `database_test` exists and reports
+  a clear error when Postgres is unreachable (#30).

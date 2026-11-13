@@ -188,6 +188,19 @@ yarn check:full
 
 `yarn check:full` requires Docker. If the `postgres_db` container is already running, it is left running.
 
+### Functional tests
+
+`yarn test:functional` runs the DB-backed suite against a real Postgres. It covers what mocks cannot: transactions, row and advisory locks, constraints and Sequelize scopes.
+
+Prerequisites:
+
+- Postgres reachable at `localhost:5432` (the `postgres_db` container from `docker-compose.yml`);
+- a `database_test` database. The `pretest:functional` hook creates it when missing, and `yarn check:full` also ensures it exists.
+
+The suite does not depend on `.env.test`: `tests/setup-functional.ts` runs before the application boots and forces `NODE_ENV=test` and `DB_NAME=database_test` (plus the connection defaults). `@nestjs/config` does not overwrite variables that are already present, so an env file cannot point the suite at the development database. The config uses `maxWorkers: 1` because every spec truncates the same tables.
+
+It is intentionally separate from `yarn test:e2e`: e2e mocks the services and stays database-free (`./scripts/check.sh`), while functional boots the real `AppModule` and asserts on database state.
+
 ### Continuous integration
 
 `.github/workflows/ci.yml` runs on every pull request and on `main`:
