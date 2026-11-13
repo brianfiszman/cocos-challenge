@@ -272,7 +272,7 @@ On first start, the following data is seeded:
   - User 1: CASH_IN 10000 ARS (FILLED), BUY 10 AAPL @ 185.2 (FILLED)
   - User 2: SELL 5 MSFT @ 410.75 (FILLED)
   - User 3: BUY 2 GOOGL @ 175.5 (NEW)
-  - User 4: BUY 0.5 BTCUSD @ 63500 (FILLED)
-  - User 5: SELL 1.5 ETHUSD @ 3450 (CANCELLED)
+  - User 4: BUY 1 BTCUSD @ 63500 (FILLED)
+  - User 5: SELL 2 ETHUSD @ 3450 (CANCELLED)
 
 User 1 starts with 10,000 ARS cash and 10 AAPL shares for easy testing.
